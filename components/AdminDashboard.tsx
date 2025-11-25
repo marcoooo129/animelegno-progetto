@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -5,7 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Edit2, Trash2, Save, Upload, Image as ImageIcon, Lock, LogOut, CheckCircle, AlertCircle, HardDrive, Cloud, Sparkles, Loader } from 'lucide-react';
+import { X, Plus, Edit2, Trash2, Save, Upload, Image as ImageIcon, Lock, LogOut, CheckCircle, AlertCircle, HardDrive, Cloud, Sparkles, Loader, ChevronLeft } from 'lucide-react';
 import { Product } from '../types';
 import { ProductService } from '../services/productService';
 import { isSupabaseConfigured } from '../services/supabaseClient';
@@ -141,42 +142,46 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
     }
   };
 
-  // --- NEW: Price Auto Formatting ---
+  // --- PRICE FORMATTING HANDLERS ---
+  const handlePriceFocus = () => {
+    if (!editingProduct?.price) return;
+    const raw = editingProduct.price.replace(/[€\s]/g, '');
+    setEditingProduct(prev => ({ ...prev, price: raw }));
+  };
+
   const handlePriceBlur = () => {
     if (!editingProduct?.price) return;
-    
-    // Remove non-numeric chars except dot
-    let numeric = editingProduct.price.replace(/[^0-9.]/g, '');
-    let val = parseFloat(numeric);
-    
-    if (!isNaN(val)) {
+    let val = editingProduct.price;
+    val = val.replace(/[€\sA-Za-z]/g, '');
+    if (val.includes(',')) {
+      val = val.replace(/\./g, '').replace(',', '.');
+    }
+    const numericVal = parseFloat(val);
+    if (!isNaN(numericVal)) {
         setEditingProduct(prev => ({ 
             ...prev, 
-            price: `€${val.toFixed(2)}` 
+            price: `€${numericVal.toFixed(2)}` 
         }));
     }
   };
 
-  // --- NEW: AI Auto-Fill Logic ---
+  // --- AI Auto-Fill Logic ---
   const handleAutoAnalyze = async () => {
     if (!selectedFile && !editingProduct?.image) return;
 
     setIsAnalyzing(true);
     try {
         let base64Data = '';
-        
-        // Strategy 1: Use local file (Most reliable)
         if (selectedFile) {
             base64Data = await new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onload = () => {
                     const res = reader.result as string;
-                    resolve(res.split(',')[1]); // Remove 'data:image/...' prefix
+                    resolve(res.split(',')[1]);
                 };
                 reader.readAsDataURL(selectedFile);
             });
         } 
-        // Strategy 2: Fetch from URL (May fail due to CORS)
         else if (editingProduct?.image) {
              try {
                  const res = await fetch(editingProduct.image);
@@ -259,20 +264,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
   return (
     <div className="fixed inset-0 z-[100] bg-[#FAFAF9] flex flex-col">
       {/* Header */}
-      <header className="bg-[#3E2723] text-white px-6 py-4 flex justify-between items-center shadow-md">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-bold tracking-wide">Studio Inventory System</h2>
-          <span className={`flex items-center gap-1 px-3 py-1 rounded text-xs font-bold ${useLocalMode ? 'bg-amber-500 text-[#3E2723]' : 'bg-green-600 text-white'}`}>
+      <header className="bg-[#3E2723] text-white px-4 md:px-6 py-4 flex justify-between items-center shadow-md flex-shrink-0">
+        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+          <h2 className="text-lg md:text-xl font-bold tracking-wide">Studio Inventory</h2>
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 md:px-3 md:py-1 rounded text-[10px] md:text-xs font-bold w-fit ${useLocalMode ? 'bg-amber-500 text-[#3E2723]' : 'bg-green-600 text-white'}`}>
             {useLocalMode ? <HardDrive className="w-3 h-3"/> : <Cloud className="w-3 h-3"/>}
-            {useLocalMode ? 'LOCAL MODE' : 'CLOUD CONNECTED'}
+            {useLocalMode ? 'LOCAL' : 'CLOUD'}
           </span>
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-3 md:gap-4">
            <button 
             onClick={handleLogout}
-            className="flex items-center gap-2 text-[#D7CCC8] hover:text-white transition-colors"
+            className="flex items-center gap-2 text-[#D7CCC8] hover:text-white transition-colors text-sm"
            >
-             <LogOut className="w-4 h-4" /> Logout
+             <LogOut className="w-4 h-4" /> <span className="hidden md:inline">Logout</span>
            </button>
            <button 
             onClick={onClose}
@@ -284,39 +289,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto p-6 md:p-10">
+      <div className="flex-1 overflow-auto p-4 md:p-10 pb-20">
         <div className="max-w-7xl mx-auto">
           
           {useLocalMode && (
-            <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3 text-amber-900">
-               <AlertCircle className="w-6 h-6 flex-shrink-0 mt-1 text-amber-600" />
+            <div className="mb-6 p-3 md:p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3 text-amber-900 text-sm md:text-base">
+               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-600" />
                <div>
                  <h4 className="font-bold">Using Local Storage</h4>
-                 <p className="text-sm mt-1">
-                   Supabase is not configured yet. Changes are saved to your <strong>browser only</strong>.
-                   <br/>
-                   To enable cloud sync across devices, please configure <code>services/supabaseClient.ts</code> with your project keys.
+                 <p className="mt-1 opacity-90">
+                   Supabase is not configured. Changes saved to browser only.
                  </p>
                </div>
             </div>
           )}
 
           {/* Actions Bar */}
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="text-2xl font-bold text-[#3E2723]">Product List ({products.length})</h3>
+          <div className="flex justify-between items-center mb-6 md:mb-8">
+            <h3 className="text-xl md:text-2xl font-bold text-[#3E2723]">Product List</h3>
             <button 
               onClick={() => {
                  setEditingProduct({ inStock: true });
                  setSelectedFile(null);
               }}
-              className="flex items-center gap-2 bg-[#8D6E63] hover:bg-[#6D4C41] text-white px-6 py-3 rounded-lg shadow-lg transition-colors"
+              className="flex items-center gap-2 bg-[#8D6E63] hover:bg-[#6D4C41] text-white px-4 py-2 md:px-6 md:py-3 rounded-lg shadow-lg transition-colors text-sm md:text-base"
             >
-              <Plus className="w-5 h-5" /> Add New Product
+              <Plus className="w-4 h-4 md:w-5 md:h-5" /> <span className="hidden md:inline">Add New Product</span><span className="md:hidden">Add</span>
             </button>
           </div>
 
           {/* Product Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             <AnimatePresence>
               {products.map((p) => (
                 <motion.div 
@@ -325,42 +328,48 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
                   initial={{ opacity: 0 }} 
                   animate={{ opacity: 1 }} 
                   exit={{ opacity: 0 }}
-                  className="bg-white rounded-xl shadow-sm border border-[#E7E5E4] overflow-hidden group"
+                  className="bg-white rounded-xl shadow-sm border border-[#E7E5E4] overflow-hidden group flex md:block h-32 md:h-auto"
                 >
-                  <div className="relative h-48 bg-[#EFEBE9]">
+                  <div className="relative w-32 md:w-full h-full md:h-48 bg-[#EFEBE9] flex-shrink-0">
                     <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
                     {!p.inStock && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold uppercase">Out of Stock</span>
+                        <span className="bg-red-500 text-white px-2 py-1 rounded text-[10px] md:text-xs font-bold uppercase text-center">Out of Stock</span>
                       </div>
                     )}
-                    <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={() => setEditingProduct(p)}
-                        className="p-2 bg-white text-[#3E2723] rounded-full shadow-lg hover:bg-[#8D6E63] hover:text-white"
-                      >
+                    {/* Desktop Hover Actions */}
+                    <div className="hidden md:flex absolute top-2 right-2 gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => setEditingProduct(p)} className="p-2 bg-white text-[#3E2723] rounded-full shadow hover:bg-[#8D6E63] hover:text-white">
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      <button 
-                        onClick={() => handleDelete(p.id)}
-                        className="p-2 bg-white text-red-500 rounded-full shadow-lg hover:bg-red-500 hover:text-white"
-                      >
+                      <button onClick={() => handleDelete(p.id)} className="p-2 bg-white text-red-500 rounded-full shadow hover:bg-red-500 hover:text-white">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
-                  <div className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-bold text-[#3E2723] truncate pr-2">{p.name}</h4>
-                        <span className="text-sm font-medium text-[#8D6E63] whitespace-nowrap">{p.price}</span>
+                  
+                  <div className="p-3 md:p-4 flex flex-col justify-between flex-1 min-w-0">
+                    <div>
+                        <div className="flex justify-between items-start mb-1">
+                            <h4 className="font-bold text-[#3E2723] truncate pr-2 text-sm md:text-base">{p.name}</h4>
+                            <span className="text-sm font-medium text-[#8D6E63] whitespace-nowrap">{p.price}</span>
+                        </div>
+                        <p className="text-[10px] md:text-xs text-[#A1887F] uppercase tracking-wider mb-2">{p.category}</p>
                     </div>
-                    <p className="text-xs text-[#A1887F] uppercase tracking-wider mb-2">{p.category}</p>
-                    <div className="flex items-center gap-2 text-xs text-[#5D4037]">
-                      {p.inStock ? (
-                        <span className="flex items-center gap-1 text-green-600"><CheckCircle className="w-3 h-3"/> Stock Active</span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-red-500"><AlertCircle className="w-3 h-3"/> Unavailable</span>
-                      )}
+                    
+                    <div className="flex items-center justify-between mt-auto">
+                        <div className="flex items-center gap-1 text-[10px] md:text-xs text-[#5D4037]">
+                        {p.inStock ? (
+                            <span className="flex items-center gap-1 text-green-600"><CheckCircle className="w-3 h-3"/> <span className="hidden md:inline">Stock Active</span></span>
+                        ) : (
+                            <span className="flex items-center gap-1 text-red-500"><AlertCircle className="w-3 h-3"/> Unavailable</span>
+                        )}
+                        </div>
+                        {/* Mobile Actions */}
+                        <div className="flex md:hidden gap-3">
+                            <button onClick={() => setEditingProduct(p)} className="text-[#8D6E63]"><Edit2 className="w-5 h-5"/></button>
+                            <button onClick={() => handleDelete(p.id)} className="text-red-400"><Trash2 className="w-5 h-5"/></button>
+                        </div>
                     </div>
                   </div>
                 </motion.div>
@@ -370,18 +379,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
         </div>
       </div>
 
-      {/* Edit/Add Modal */}
+      {/* Edit/Add Modal - Full Screen on Mobile */}
       <AnimatePresence>
         {editingProduct && (
-          <div className="fixed inset-0 z-[110] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[110] bg-black/50 md:backdrop-blur-sm flex items-end md:items-center justify-center md:p-4">
             <motion.div 
-              initial={{ y: 50, opacity: 0 }}
+              initial={{ y: "100%", opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 50, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl"
+              exit={{ y: "100%", opacity: 0 }}
+              className="bg-white md:rounded-2xl w-full h-full md:h-auto md:max-w-4xl md:max-h-[90vh] shadow-2xl flex flex-col"
             >
-              <div className="sticky top-0 bg-white border-b border-[#E7E5E4] px-8 py-5 flex justify-between items-center z-10">
-                <h3 className="text-xl font-bold text-[#3E2723]">
+              {/* Modal Header */}
+              <div className="flex-shrink-0 bg-white border-b border-[#E7E5E4] px-4 py-4 md:px-8 md:py-5 flex justify-between items-center z-10 safe-top">
+                <div className="flex items-center gap-2 md:hidden" onClick={() => setEditingProduct(null)}>
+                    <ChevronLeft className="w-6 h-6 text-[#A1887F]"/>
+                    <span className="text-[#A1887F]">Back</span>
+                </div>
+                <h3 className="text-lg md:text-xl font-bold text-[#3E2723] flex-1 text-center md:text-left">
                   {editingProduct.id ? 'Edit Product' : 'Add New Product'}
                 </h3>
                 <button onClick={() => setEditingProduct(null)} className="text-[#A1887F] hover:text-[#3E2723]">
@@ -389,10 +403,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
                 </button>
               </div>
               
-              <form onSubmit={handleSave} className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col md:grid md:grid-cols-2 gap-6 md:gap-8 pb-24 md:pb-8">
                 
                 {/* Left Col: Image & AI */}
-                <div className="space-y-6">
+                <div className="space-y-4 md:space-y-6">
                   <div className="aspect-square bg-[#FAFAF9] rounded-xl border-2 border-dashed border-[#D7CCC8] flex flex-col items-center justify-center overflow-hidden relative group">
                     {editingProduct.image ? (
                       <img src={editingProduct.image} alt="Preview" className="w-full h-full object-cover" />
@@ -406,33 +420,33 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-4">
                       <label className="cursor-pointer bg-white text-[#3E2723] px-4 py-2 rounded-full font-bold text-sm shadow-lg hover:bg-[#F5F5F5] flex items-center gap-2">
                         <Upload className="w-4 h-4" /> 
-                        {selectedFile ? 'Change File' : 'Upload File'}
+                        {selectedFile ? 'Change' : 'Upload'}
                         <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                       </label>
                     </div>
+                    {/* Mobile always show upload button slightly transparent if no image */}
+                    {!editingProduct.image && (
+                         <label className="md:hidden absolute inset-0 flex items-center justify-center z-10">
+                            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                         </label>
+                    )}
                   </div>
                   
-                  {selectedFile && (
-                    <div className="text-xs text-center text-green-600 font-medium bg-green-50 py-1 rounded">
-                      File ready: {selectedFile.name} (Local Preview)
-                    </div>
-                  )}
-
                   {/* AI Analysis Button */}
                   <button
                     type="button"
                     onClick={handleAutoAnalyze}
                     disabled={isAnalyzing || (!selectedFile && !editingProduct.image)}
-                    className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 shadow-sm transition-all
+                    className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 shadow-sm transition-all text-sm
                         ${isAnalyzing || (!selectedFile && !editingProduct.image)
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:shadow-lg hover:scale-[1.02]'
+                            : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:shadow-lg'
                         }`}
                   >
                      {isAnalyzing ? (
-                         <><Loader className="w-4 h-4 animate-spin" /> Analyzing Image...</>
+                         <><Loader className="w-4 h-4 animate-spin" /> Analyzing...</>
                      ) : (
-                         <><Sparkles className="w-4 h-4" /> AI Analyze & Auto-Fill</>
+                         <><Sparkles className="w-4 h-4" /> AI Auto-Fill Info</>
                      )}
                   </button>
                   
@@ -442,7 +456,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
                       type="text" 
                       value={!selectedFile ? editingProduct.image || '' : ''}
                       onChange={(e) => {
-                        setSelectedFile(null); // Clear file if URL is manually typed
+                        setSelectedFile(null);
                         setEditingProduct({...editingProduct, image: e.target.value})
                       }}
                       placeholder="https://..."
@@ -454,7 +468,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
 
                 {/* Right Col: Details */}
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-xs font-bold text-[#8D6E63] uppercase tracking-wider mb-2">Name *</label>
                         <input 
@@ -485,8 +499,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
                         type="text" 
                         value={editingProduct.price || ''}
                         onChange={(e) => setEditingProduct({...editingProduct, price: e.target.value})}
-                        onBlur={handlePriceBlur} // Auto-format on blur
-                        placeholder="e.g. 120"
+                        onFocus={handlePriceFocus}
+                        onBlur={handlePriceBlur}
+                        placeholder="120"
                         className="w-full p-3 rounded-lg bg-[#FAFAF9] border border-[#E7E5E4] focus:border-[#8D6E63]"
                         />
                     </div>
@@ -519,27 +534,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
                         <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${editingProduct.inStock ? 'translate-x-6' : 'translate-x-0'}`} />
                     </div>
                     <span className="text-sm font-medium text-[#5D4037]">
-                        {editingProduct.inStock ? 'Product is visible & In Stock' : 'Hidden / Out of Stock'}
+                        {editingProduct.inStock ? 'In Stock' : 'Out of Stock'}
                     </span>
                   </div>
+                  
+                  {/* Spacer for sticky buttons on mobile */}
+                  <div className="h-12 md:hidden"></div>
+                </div>
 
-                  <div className="pt-4 flex gap-3">
+                {/* Sticky Action Buttons */}
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-[#E7E5E4] flex gap-3 md:relative md:border-t-0 md:bg-transparent md:p-0 md:pt-4 z-20 safe-bottom">
                     <button 
                       type="button"
                       onClick={() => setEditingProduct(null)}
-                      className="flex-1 py-3 text-[#8D6E63] hover:bg-[#FAFAF9] rounded-lg transition-colors font-bold"
+                      className="flex-1 py-3 text-[#8D6E63] hover:bg-[#FAFAF9] rounded-lg transition-colors font-bold border border-[#E7E5E4] md:border-0"
                     >
                       Cancel
                     </button>
                     <button 
                       type="submit"
                       disabled={isLoading}
-                      className="flex-1 bg-[#3E2723] hover:bg-[#5D4037] text-white py-3 rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
+                      className="flex-[2] bg-[#3E2723] hover:bg-[#5D4037] text-white py-3 rounded-lg font-bold transition-colors flex items-center justify-center gap-2 shadow-lg"
                     >
-                      {isLoading ? 'Saving...' : <><Save className="w-4 h-4" /> Save Product</>}
+                      {isLoading ? 'Saving...' : <><Save className="w-4 h-4" /> Save</>}
                     </button>
                   </div>
-                </div>
               </form>
             </motion.div>
           </div>
