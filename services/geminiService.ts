@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -5,7 +6,8 @@
 
 import { GoogleGenAI, Chat, GenerateContentResponse, Type } from "@google/genai";
 
-const API_KEY = process.env.API_KEY || '';
+// User provided API Key
+const API_KEY = 'AIzaSyAWxZ30OfKqPEFzn2v88tVhfyB2VrE37vg';
 
 let chatSession: Chat | null = null;
 
