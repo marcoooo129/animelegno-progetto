@@ -18,7 +18,7 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ artist: product, onClick }) => {
   return (
     <motion.div
-      className="group relative h-[400px] w-full overflow-hidden bg-white cursor-pointer rounded-xl shadow-md hover:shadow-2xl transition-all duration-500"
+      className="group relative h-[400px] w-full overflow-hidden bg-white cursor-pointer rounded-xl shadow-md md:hover:shadow-2xl transition-all duration-500"
       initial="rest"
       whileHover="hover"
       whileTap="hover"
@@ -28,20 +28,24 @@ const ProductCard: React.FC<ProductCardProps> = ({ artist: product, onClick }) =
     >
       {/* Image Background with Zoom and Filter */}
       <div className="absolute inset-0 overflow-hidden rounded-xl">
+        {/* Only animate scale/filter on desktop (hover) to prevent lag on mobile scroll */}
         <motion.img 
           src={product.image} 
           alt={product.name} 
           className="h-full w-full object-cover"
           variants={{
             rest: { scale: 1, filter: "brightness(1)" },
-            hover: { scale: 1.1, filter: "brightness(0.9)" }
+            hover: { 
+              scale: 1.1, 
+              filter: "brightness(0.9)",
+              transition: { duration: 0.6, ease: [0.33, 1, 0.68, 1] }
+            }
           }}
-          transition={{ duration: 0.6, ease: [0.33, 1, 0.68, 1] }}
         />
         
-        {/* Overlay on Hover */}
+        {/* Overlay on Hover (Desktop only) */}
         <motion.div 
-          className="absolute inset-0 bg-black/20 flex items-center justify-center backdrop-blur-[2px]"
+          className="hidden md:flex absolute inset-0 bg-black/20 items-center justify-center backdrop-blur-[2px]"
           variants={{
             rest: { opacity: 0 },
             hover: { opacity: 1 }

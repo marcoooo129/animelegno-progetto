@@ -99,7 +99,7 @@ const App: React.FC = () => {
       </AnimatePresence>
       
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-6 md:px-12 py-4 md:py-6 bg-[#FAFAF9]/90 backdrop-blur-md border-b border-[#E7E5E4]">
+      <nav className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-6 md:px-12 py-4 md:py-6 bg-[#FAFAF9]/95 md:bg-[#FAFAF9]/90 md:backdrop-blur-md border-b border-[#E7E5E4]">
         <div className="font-heading text-lg md:text-2xl font-bold tracking-tight text-[#3E2723] cursor-default z-50 flex items-center gap-2">
           AnimeLegno Studio
         </div>
@@ -223,7 +223,7 @@ const App: React.FC = () => {
       </header>
 
       {/* PORTFOLIO SECTION */}
-      <section id="portfolio" className="relative z-10 py-16 md:py-32">
+      <section id="portfolio" className="relative z-10 py-12 md:py-32">
         <div className="max-w-[1400px] mx-auto px-4 md:px-6">
           <div className="flex flex-col items-center mb-10 md:mb-16 px-4 text-center">
              <h2 className="text-3xl md:text-6xl font-heading font-bold text-[#3E2723] mb-4">
@@ -243,7 +243,7 @@ const App: React.FC = () => {
       </section>
 
       {/* CUSTOM SERVICE SECTION */}
-      <section id="custom" className="relative z-10 py-16 md:py-32 bg-[#EFEBE9] overflow-hidden">
+      <section id="custom" className="relative z-10 py-12 md:py-32 bg-[#EFEBE9] overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 md:px-6 relative">
           <div className="text-center mb-10 md:mb-16">
             <h2 className="text-3xl md:text-6xl font-heading font-bold text-[#3E2723] mb-6">
@@ -286,7 +286,7 @@ const App: React.FC = () => {
       </section>
 
       {/* CONTACT / FOOTER SECTION */}
-      <section id="contact" className="relative z-10 py-16 md:py-32 px-4 md:px-6 bg-[#FAFAF9]">
+      <section id="contact" className="relative z-10 py-12 md:py-32 px-4 md:px-6 bg-[#FAFAF9]">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10 md:mb-16">
              <h2 className="text-3xl md:text-6xl font-heading font-bold text-[#3E2723]">
@@ -373,7 +373,8 @@ const App: React.FC = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSelectedProduct(null)}
-            className="fixed inset-0 z-[60] flex items-end md:items-center justify-center md:p-4 bg-[#3E2723]/60 backdrop-blur-sm cursor-auto"
+            // PERFORMANCE: Remove backdrop-blur-sm on mobile to prevent lag. Only background color.
+            className="fixed inset-0 z-[60] flex items-end md:items-center justify-center md:p-4 bg-[#3E2723]/90 md:bg-[#3E2723]/60 md:backdrop-blur-sm cursor-auto"
           >
             <motion.div
               initial={{ y: "100%", md: { scale: 0.9, y: 20 } } as any}
