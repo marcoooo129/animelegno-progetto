@@ -385,16 +385,16 @@ const App: React.FC = () => {
               {/* Close Button */}
               <button
                 onClick={() => setSelectedProduct(null)}
-                className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/80 text-[#3E2723] hover:bg-[#3E2723] hover:text-white transition-colors shadow-sm md:top-4 md:right-4"
+                className="absolute top-4 right-4 z-30 p-2 rounded-full bg-white/60 backdrop-blur-md text-[#3E2723] hover:bg-[#3E2723] hover:text-white transition-colors shadow-sm md:bg-white/80 md:top-4 md:right-4"
                 data-hover="true"
               >
                 <X className="w-6 h-6" />
               </button>
 
-              {/* Navigation Buttons (Desktop: Centered Sides, Mobile: Bottom corners) */}
+              {/* Navigation Buttons (Updated: Centered on Image for Mobile) */}
               <button
                 onClick={(e) => { e.stopPropagation(); navigateProduct('prev'); }}
-                className="absolute left-4 bottom-8 z-20 p-3 rounded-full bg-white/90 text-[#3E2723] shadow-lg md:top-1/2 md:bottom-auto md:-translate-y-1/2 hover:scale-110 transition-transform"
+                className="absolute left-2 top-[20vh] -translate-y-1/2 z-30 p-2 rounded-full bg-white/60 text-[#3E2723] backdrop-blur-md shadow-sm md:shadow-lg md:bg-white/90 md:left-4 md:top-1/2 md:translate-y-[-50%] md:bottom-auto md:p-3 hover:scale-110 transition-transform"
                 data-hover="true"
               >
                 <ChevronLeft className="w-6 h-6" />
@@ -402,7 +402,7 @@ const App: React.FC = () => {
 
               <button
                 onClick={(e) => { e.stopPropagation(); navigateProduct('next'); }}
-                className="absolute right-4 bottom-8 z-20 p-3 rounded-full bg-white/90 text-[#3E2723] shadow-lg md:top-1/2 md:bottom-auto md:-translate-y-1/2 md:right-8 hover:scale-110 transition-transform"
+                className="absolute right-2 top-[20vh] -translate-y-1/2 z-30 p-2 rounded-full bg-white/60 text-[#3E2723] backdrop-blur-md shadow-sm md:shadow-lg md:bg-white/90 md:right-8 md:top-1/2 md:translate-y-[-50%] md:bottom-auto md:p-3 hover:scale-110 transition-transform"
                 data-hover="true"
               >
                 <ChevronRight className="w-6 h-6" />
@@ -427,7 +427,7 @@ const App: React.FC = () => {
               </div>
 
               {/* Content Side */}
-              <div className="w-full md:w-1/2 p-6 pb-24 md:p-12 flex flex-col justify-center relative bg-[#FAFAF9]">
+              <div className="w-full md:w-1/2 p-6 pb-12 md:p-12 flex flex-col justify-center relative bg-[#FAFAF9]">
                 <motion.div
                   key={selectedProduct.id}
                   initial={{ opacity: 0, x: 20 }}
