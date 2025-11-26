@@ -7,13 +7,25 @@
 
 export interface Product {
   id: string;
+  sku?: string;          // Stock Keeping Unit
+  
+  // English
   name: string;
-  category: string;
+  category: string;      // Anime Name (EN)
+  description: string;
+  
+  // Italian
+  name_it?: string;
+  category_it?: string;  // Anime Name (IT)
+  description_it?: string;
+
   image: string;
   dimensions: string;
   price: string;
-  description: string;
   inStock: boolean;
+  
+  // Soft Delete flag
+  isHidden?: boolean;
 }
 
 export interface ChatMessage {

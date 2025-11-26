@@ -11,14 +11,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { sendMessageToGemini } from '../services/geminiService';
 import { ChatMessage } from '../types';
 
-const AIChat: React.FC = () => {
+interface AIChatProps {
+  lang: 'en' | 'it';
+}
+
+const AIChat: React.FC<AIChatProps> = ({ lang }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'model', text: 'Ciao! 👋 I am your studio assistant. Ask me anything about our wood carvings or custom orders!' }
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // Set initial welcome message based on language
+  useEffect(() => {
+    if (messages.length === 0) {
+      const welcomeText = lang === 'it' 
+        ? "Ciao! 👋 Sono l'assistente dello studio. Chiedimi qualsiasi cosa sui nostri intagli o sugli ordini personalizzati!"
+        : "Ciao! 👋 I am your studio assistant. Ask me anything about our wood carvings or custom orders!";
+      setMessages([{ role: 'model', text: welcomeText }]);
+    }
+  }, [lang]); // Only run if lang changes and history is empty, or better yet, don't clear history just append if needed.
+  // Actually, keeping history is better. If lang changes, user might switch lang mid chat. 
 
   const scrollToBottom = () => {
     if (chatContainerRef.current) {
@@ -117,7 +130,7 @@ const AIChat: React.FC = () => {
                       handleSend();
                     }
                   }}
-                  placeholder="Ask about custom orders..."
+                  placeholder={lang === 'it' ? "Chiedi sui ordini personalizzati..." : "Ask about custom orders..."}
                   className="flex-1 bg-transparent text-[#F5F5DC] placeholder-[#F5F5DC]/30 text-sm focus:outline-none"
                 />
                 <button

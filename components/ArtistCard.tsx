@@ -13,9 +13,13 @@ import { Search } from 'lucide-react';
 interface ProductCardProps {
   artist: Product; // Keeping prop name 'artist' for minimal interface change in App.tsx usage
   onClick: () => void;
+  lang: 'en' | 'it';
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ artist: product, onClick }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ artist: product, onClick, lang }) => {
+  const displayName = lang === 'it' ? (product.name_it || product.name) : product.name;
+  const displayCategory = lang === 'it' ? (product.category_it || product.category) : product.category;
+
   return (
     <motion.div
       className="group relative h-[400px] w-full overflow-hidden bg-white cursor-pointer rounded-xl shadow-md md:hover:shadow-2xl transition-all duration-500"
@@ -31,7 +35,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ artist: product, onClick }) =
         {/* Only animate scale/filter on desktop (hover) to prevent lag on mobile scroll */}
         <motion.img 
           src={product.image} 
-          alt={product.name} 
+          alt={displayName} 
           className="h-full w-full object-cover"
           variants={{
             rest: { scale: 1, filter: "brightness(1)" },
@@ -76,10 +80,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ artist: product, onClick }) =
         transition={{ duration: 0.3 }}
       >
         <h3 className="text-white font-heading text-xl font-bold uppercase tracking-wider drop-shadow-md">
-          {product.name}
+          {displayName}
         </h3>
         <p className="text-[#F5F5DC] text-xs uppercase tracking-widest mt-1 opacity-90">
-          {product.category}
+          {displayCategory}
         </p>
       </motion.div>
     </motion.div>

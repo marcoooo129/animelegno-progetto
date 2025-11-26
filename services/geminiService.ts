@@ -67,25 +67,42 @@ export const analyzeProductImage = async (base64Data: string, mimeType: string =
       contents: {
         parts: [
           { inlineData: { mimeType: mimeType, data: base64Data } },
-          { text: "Analyze this image. It is a wood carving, anime figure, or character art. Act as a curator for a high-end wood carving studio. Return a JSON object with: 1. 'name' (A creative, epic title for the piece) 2. 'category' (The exact Anime Series name) 3. 'description' (A compelling, artisanal description highlighting the craftsmanship and character, max 40 words). Output strictly JSON." }
+          { text: "Analyze this image of a wood carving. Return a strict JSON object. Fields: 'name' (Character Name), 'category' (The specific Anime Series Name in English, e.g. One Piece), 'category_it' (The specific Anime Series Name in Italian), 'description' (English, max 30 words), 'name_it' (Italian Translation of name), 'description_it' (Italian Translation of desc), 'sku' (Generate a short code like SR-001)." }
         ]
       },
       config: {
+        maxOutputTokens: 8192, 
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
             name: { type: Type.STRING },
             category: { type: Type.STRING },
-            description: { type: Type.STRING }
+            category_it: { type: Type.STRING },
+            description: { type: Type.STRING },
+            name_it: { type: Type.STRING },
+            description_it: { type: Type.STRING },
+            sku: { type: Type.STRING }
           }
         }
       }
     });
 
-    return JSON.parse(response.text);
-  } catch (error) {
+    const text = response.text || "";
+    // Clean up potentially dirty JSON (e.g. markdown code blocks)
+    const cleanedText = text.replace(/```json|```/g, '').trim();
+    
+    // Robust parsing: extract content between first { and last }
+    const firstBrace = cleanedText.indexOf('{');
+    const lastBrace = cleanedText.lastIndexOf('}');
+    
+    if (firstBrace !== -1 && lastBrace !== -1) {
+       return JSON.parse(cleanedText.substring(firstBrace, lastBrace + 1));
+    }
+
+    return JSON.parse(cleanedText);
+  } catch (error: any) {
     console.error("Gemini Image Analysis Failed:", error);
-    throw new Error("Failed to analyze image with AI.");
+    throw new Error(`AI Analysis Failed: ${error.message || 'Unknown error'}`);
   }
 };

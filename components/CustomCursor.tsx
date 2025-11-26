@@ -14,7 +14,7 @@ const CustomCursor: React.FC = () => {
   const mouseX = useMotionValue(-100);
   const mouseY = useMotionValue(-100);
   
-  const springConfig = { damping: 20, stiffness: 350, mass: 0.1 }; 
+  const springConfig = { damping: 25, stiffness: 300, mass: 0.2 }; 
   const x = useSpring(mouseX, springConfig);
   const y = useSpring(mouseY, springConfig);
 
@@ -54,13 +54,13 @@ const CustomCursor: React.FC = () => {
       <motion.div
         className="flex items-center justify-center bg-white rounded-full"
         animate={{
-          width: isHovering ? 80 : 12,
-          height: isHovering ? 80 : 12,
+          width: isHovering ? 120 : 40, // Increased size: 40px default, 120px hover
+          height: isHovering ? 120 : 40,
         }}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        transition={{ type: "spring", stiffness: 250, damping: 20 }}
       >
         <motion.span 
-          className="text-black font-bold uppercase tracking-widest text-[10px]"
+          className="text-black font-bold uppercase tracking-[0.2em] text-xs" // Increased text size slightly
           initial={{ opacity: 0, scale: 0 }}
           animate={{ 
             opacity: isHovering ? 1 : 0,
