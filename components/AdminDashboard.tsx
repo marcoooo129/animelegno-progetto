@@ -6,9 +6,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Edit2, EyeOff, Upload, Image as ImageIcon, Lock, LogOut, HardDrive, Cloud, Sparkles, Loader, Database, Globe, Tag, DollarSign, Box, Link as LinkIcon, AlertTriangle, CheckCircle, Wrench, AlertCircle } from 'lucide-react';
-import { Product } from '../types';
+import { X, Plus, Edit2, EyeOff, Upload, Image as ImageIcon, Lock, LogOut, HardDrive, Cloud, Sparkles, Loader, Database, Globe, Tag, DollarSign, Box, Link as LinkIcon, AlertTriangle, CheckCircle, Wrench, AlertCircle, Film, Trash2 } from 'lucide-react';
+import { Product, GalleryItem } from '../types';
 import { ProductService } from '../services/productService';
+import { GalleryService } from '../services/galleryService';
 import { isSupabaseConfigured } from '../services/supabaseClient';
 import { analyzeProductImage } from '../services/geminiService';
 
@@ -75,8 +76,16 @@ const compressImage = async (file: File): Promise<string> => {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
-  const [products, setProducts] = useState<Product[]>([]);
   
+  // Tabs: 'products' | 'gallery'
+  const [activeTab, setActiveTab] = useState<'products' | 'gallery'>('products');
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [galleryImages, setGalleryImages] = useState<GalleryItem[]>([]);
+  
+  // Gallery URL State
+  const [galleryUrlInput, setGalleryUrlInput] = useState('');
+
   // Editing State
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -97,14 +106,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
     if (checkAuth === 'true') {
       setIsAuthenticated(true);
       setUseLocalMode(!isSupabaseConfigured());
-      loadProducts();
+      loadData();
     }
   }, []);
 
-  const loadProducts = async () => {
+  const loadData = async () => {
     setIsLoading(true);
-    const data = await ProductService.getAll();
-    setProducts(data);
+    const pData = await ProductService.getAll();
+    setProducts(pData);
+    const gData = await GalleryService.getAll();
+    setGalleryImages(gData);
     setIsLoading(false);
   };
 
@@ -114,7 +125,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
       setIsAuthenticated(true);
       sessionStorage.setItem('admin_auth', 'true');
       setUseLocalMode(!isSupabaseConfigured());
-      loadProducts();
+      loadData();
       setError('');
     } else {
       setError('Invalid password');
@@ -135,27 +146,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
       }, 3000);
   };
 
+  // --- PRODUCT LOGIC ---
+
   const handleDelete = async (id: string) => {
-    // IMMEDIATE ACTION: No confirm dialog to prevent blocking
-    // OPTIMISTIC UPDATE: Remove immediately from UI for instant feedback
     const previousProducts = [...products];
     setProducts(prev => prev.filter(p => p.id !== id));
-    
     setDeletingId(id); 
     
     try {
-      await ProductService.delete(id); // Effectively hides the product (soft delete)
-      // Success
+      await ProductService.delete(id); 
       showToast('Product hidden successfully', 'success');
       onUpdate();
     } catch (e: any) {
-      console.error(e);
-      // Failure: Revert UI
       setProducts(previousProducts);
-      
       showToast(`Failed to hide: ${e.message}`, 'error');
-      
-      // Suggest repair if it's a column error
       if (e.message.includes("is_hidden") || e.message.includes("column") || e.message.includes("PGRST204")) {
           setShowRepairModal(true);
       }
@@ -177,11 +181,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
 
       const productToSave = {
         ...editingProduct,
-        id: editingProduct.id || '', // Empty ID tells service to create new
+        id: editingProduct.id || '',
         inStock: editingProduct.inStock ?? true,
         price: editingProduct.price || '€0.00',
         image: finalImageUrl,
-        // Ensure strings
         sku: editingProduct.sku || '',
         name: editingProduct.name,
         name_it: editingProduct.name_it || '',
@@ -194,10 +197,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
       await ProductService.save(productToSave);
       
       showToast('Product saved successfully', 'success');
-      
-      // Refresh list
-      const updated = await ProductService.getAll();
-      setProducts(updated);
+      loadData();
       setEditingProduct(null);
       setSelectedFile(null);
       onUpdate();
@@ -211,11 +211,67 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
     }
   };
 
+  // --- GALLERY LOGIC ---
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!e.target.files || e.target.files.length === 0) return;
+      const file = e.target.files[0];
+      
+      setIsLoading(true);
+      try {
+          await GalleryService.save(file);
+          const updated = await GalleryService.getAll();
+          setGalleryImages(updated);
+          showToast('Image uploaded to ticker', 'success');
+      } catch (err: any) {
+          showToast('Gallery Upload Failed: ' + err.message, 'error');
+          if (err.message.includes('relation "gallery" does not exist') || err.code === '42P01') {
+             setShowRepairModal(true);
+          }
+      } finally {
+          setIsLoading(false);
+      }
+  };
+
+  const handleGalleryUrlAdd = async () => {
+    if (!galleryUrlInput.trim()) return;
+    setIsLoading(true);
+    try {
+        await GalleryService.save(galleryUrlInput);
+        const updated = await GalleryService.getAll();
+        setGalleryImages(updated);
+        setGalleryUrlInput('');
+        showToast('Image link added', 'success');
+    } catch (err: any) {
+        showToast('Failed to add link: ' + err.message, 'error');
+        if (err.message.includes('relation "gallery" does not exist') || err.code === '42P01') {
+             setShowRepairModal(true);
+        }
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const handleDeleteGallery = async (id: string) => {
+      const prev = [...galleryImages];
+      setGalleryImages(prev => prev.filter(i => i.id !== id)); // Optimistic
+
+      try {
+          await GalleryService.delete(id);
+          showToast('Image removed', 'success');
+      } catch (err: any) {
+          setGalleryImages(prev);
+          showToast('Failed to remove: ' + err.message, 'error');
+      }
+  };
+
+  // --- COMMON LOGIC ---
+
   const handleSeedData = async () => {
       if(confirm("Import sample data to database?")) {
           setIsLoading(true);
           await ProductService.seedInitialData();
-          await loadProducts();
+          loadData();
           setIsLoading(false);
           showToast('Sample data imported', 'success');
       }
@@ -262,13 +318,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
     }
   };
 
-  // --- Price Formatting ---
   const handlePriceBlur = () => {
       if (!editingProduct?.price) return;
-      
       const cleanPrice = editingProduct.price.replace(/[^0-9.]/g, '');
       const numberValue = parseFloat(cleanPrice);
-      
       if (!isNaN(numberValue)) {
           const formatted = `€${numberValue.toFixed(2)}`;
           setEditingProduct(prev => ({ ...prev, price: formatted }));
@@ -320,14 +373,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
       </div>
 
       {/* Header */}
-      <header className="bg-[#3E2723] text-white px-6 py-4 flex justify-between items-center shadow-lg z-10">
-        <div className="flex flex-col md:flex-row md:items-center gap-3">
-          <h2 className="text-xl font-bold tracking-wide">Studio Inventory</h2>
-          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider w-fit ${useLocalMode ? 'bg-amber-500/90 text-[#3E2723]' : 'bg-green-500/90 text-white'}`}>
-            {useLocalMode ? <HardDrive className="w-3 h-3"/> : <Cloud className="w-3 h-3"/>}
-            {useLocalMode ? 'LOCAL STORAGE' : 'CLOUD DATABASE'}
-          </span>
+      <header className="bg-[#3E2723] text-white px-6 py-4 flex flex-col md:flex-row justify-between items-center shadow-lg z-10 gap-4">
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex items-center gap-2">
+             <h2 className="text-xl font-bold tracking-wide">Studio Inventory</h2>
+             <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider w-fit ${useLocalMode ? 'bg-amber-500/90 text-[#3E2723]' : 'bg-green-500/90 text-white'}`}>
+                {useLocalMode ? <HardDrive className="w-3 h-3"/> : <Cloud className="w-3 h-3"/>}
+             </span>
+          </div>
+
+          {/* TABS */}
+          <div className="flex bg-[#2D1B15] p-1 rounded-lg">
+             <button 
+                onClick={() => setActiveTab('products')}
+                className={`px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'products' ? 'bg-[#5D4037] text-white shadow' : 'text-[#8D6E63] hover:text-white'}`}
+             >
+                Products
+             </button>
+             <button 
+                onClick={() => setActiveTab('gallery')}
+                className={`px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${activeTab === 'gallery' ? 'bg-[#5D4037] text-white shadow' : 'text-[#8D6E63] hover:text-white'}`}
+             >
+                <Film className="w-3 h-3"/> Ticker Gallery
+             </button>
+          </div>
         </div>
+
         <div className="flex gap-4 items-center">
             {!useLocalMode && (
                 <button 
@@ -346,77 +417,145 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-4 md:p-8 bg-[#FAFAF9]">
         <div className="max-w-[1600px] mx-auto">
-          {/* Action Bar */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <div>
-              <h3 className="text-3xl font-heading font-bold text-[#3E2723]">Products</h3>
-              <p className="text-[#8D6E63] text-sm mt-1">Manage your collection and translations</p>
-            </div>
-            <div className="flex gap-3 w-full md:w-auto">
-                 {!useLocalMode && products.length === 0 && (
-                     <button onClick={handleSeedData} className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl shadow-md hover:bg-blue-700 transition-all font-medium text-sm">
-                         <Database className="w-4 h-4" /> Import Demo Data
-                     </button>
-                 )}
-                <button onClick={() => { setEditingProduct({ inStock: true }); setSelectedFile(null); }} 
-                    className="flex-1 md:flex-none justify-center items-center gap-2 bg-[#3E2723] text-white px-6 py-2.5 rounded-xl shadow-lg hover:bg-[#5D4037] transition-all duration-300 font-medium">
-                  <Plus className="w-5 h-5" /> Add Product
-                </button>
-            </div>
-          </div>
-
-          {/* Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            <AnimatePresence>
-              {products.map((p) => (
-                <motion.div key={p.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white rounded-2xl shadow-sm border border-[#E7E5E4] overflow-hidden group hover:shadow-xl transition-all duration-300 flex md:flex-col h-32 md:h-auto relative">
-                  
-                  {deletingId === p.id && (
-                      <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center text-gray-500">
-                          <EyeOff className="w-8 h-8 animate-pulse mb-2 text-gray-400" />
-                          <span className="text-xs font-bold uppercase tracking-widest">Hiding...</span>
-                      </div>
-                  )}
-
-                  {/* Image Area */}
-                  <div className="w-32 md:w-full h-full md:h-56 bg-[#EFEBE9] flex-shrink-0 relative overflow-hidden">
-                    <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300"/>
-                    
-                    {/* Desktop Actions */}
-                    <div className="hidden md:flex absolute top-3 right-3 gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-[-10px] group-hover:translate-y-0 z-30">
-                      <button onClick={() => setEditingProduct(p)} className="p-2.5 bg-white text-[#3E2723] rounded-full shadow-lg hover:bg-[#3E2723] hover:text-white transition-colors border border-gray-100"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={() => handleDelete(p.id)} title="Hide Product" className="p-2.5 bg-white text-gray-400 rounded-full shadow-lg hover:bg-gray-100 hover:text-gray-600 transition-colors border border-gray-100"><EyeOff className="w-4 h-4" /></button>
-                    </div>
-                    
-                    {!p.inStock && (
-                       <div className="absolute top-3 left-3 bg-red-500/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm backdrop-blur-sm z-20">OUT OF STOCK</div>
-                    )}
-                  </div>
-
-                  {/* Info Area */}
-                  <div className="p-4 flex flex-col justify-between flex-1 min-w-0">
+          
+          {/* === PRODUCTS VIEW === */}
+          {activeTab === 'products' && (
+              <>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
-                        <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-bold text-[#3E2723] truncate pr-2 text-base leading-tight">{p.name}</h4>
-                        </div>
-                        <div className="flex items-center gap-2 mb-3">
-                           <span className="text-sm font-bold text-[#8D6E63] bg-[#EFEBE9] px-2 py-0.5 rounded-md">{p.price}</span>
-                           <span className="text-[10px] text-[#A1887F] uppercase tracking-wider truncate">{p.category}</span>
-                        </div>
-                        {p.sku && <div className="text-[10px] text-gray-400 font-mono flex items-center gap-1"><Tag className="w-3 h-3"/> {p.sku}</div>}
+                    <h3 className="text-3xl font-heading font-bold text-[#3E2723]">Products</h3>
+                    <p className="text-[#8D6E63] text-sm mt-1">Manage your collection and translations</p>
                     </div>
-                    
-                    <div className="flex md:hidden gap-4 mt-2 justify-end items-end h-full">
-                        <button onClick={() => setEditingProduct(p)} className="text-[#8D6E63] p-2 bg-gray-50 rounded-lg"><Edit2 className="w-5 h-5"/></button>
-                        <button onClick={() => handleDelete(p.id)} className="text-gray-400 p-2 bg-gray-50 rounded-lg"><EyeOff className="w-5 h-5"/></button>
+                    <div className="flex gap-3 w-full md:w-auto">
+                        {!useLocalMode && products.length === 0 && (
+                            <button onClick={handleSeedData} className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl shadow-md hover:bg-blue-700 transition-all font-medium text-sm">
+                                <Database className="w-4 h-4" /> Import Demo Data
+                            </button>
+                        )}
+                        <button onClick={() => { setEditingProduct({ inStock: true }); setSelectedFile(null); }} 
+                            className="flex-1 md:flex-none justify-center items-center gap-2 bg-[#3E2723] text-white px-6 py-2.5 rounded-xl shadow-lg hover:bg-[#5D4037] transition-all duration-300 font-medium">
+                        <Plus className="w-5 h-5" /> Add Product
+                        </button>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                    <AnimatePresence>
+                    {products.map((p) => (
+                        <motion.div key={p.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                        className="bg-white rounded-2xl shadow-sm border border-[#E7E5E4] overflow-hidden group hover:shadow-xl transition-all duration-300 flex md:flex-col h-32 md:h-auto relative">
+                        
+                        {deletingId === p.id && (
+                            <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center text-gray-500">
+                                <EyeOff className="w-8 h-8 animate-pulse mb-2 text-gray-400" />
+                                <span className="text-xs font-bold uppercase tracking-widest">Hiding...</span>
+                            </div>
+                        )}
+
+                        <div className="w-32 md:w-full h-full md:h-56 bg-[#EFEBE9] flex-shrink-0 relative overflow-hidden">
+                            <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300"/>
+                            
+                            <div className="hidden md:flex absolute top-3 right-3 gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-[-10px] group-hover:translate-y-0 z-30">
+                            <button onClick={() => setEditingProduct(p)} className="p-2.5 bg-white text-[#3E2723] rounded-full shadow-lg hover:bg-[#3E2723] hover:text-white transition-colors border border-gray-100"><Edit2 className="w-4 h-4" /></button>
+                            <button onClick={() => handleDelete(p.id)} title="Hide Product" className="p-2.5 bg-white text-gray-400 rounded-full shadow-lg hover:bg-gray-100 hover:text-gray-600 transition-colors border border-gray-100"><EyeOff className="w-4 h-4" /></button>
+                            </div>
+                            
+                            {!p.inStock && (
+                            <div className="absolute top-3 left-3 bg-red-500/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm backdrop-blur-sm z-20">OUT OF STOCK</div>
+                            )}
+                        </div>
+
+                        <div className="p-4 flex flex-col justify-between flex-1 min-w-0">
+                            <div>
+                                <div className="flex justify-between items-start mb-2">
+                                    <h4 className="font-bold text-[#3E2723] truncate pr-2 text-base leading-tight">{p.name}</h4>
+                                </div>
+                                <div className="flex items-center gap-2 mb-3">
+                                <span className="text-sm font-bold text-[#8D6E63] bg-[#EFEBE9] px-2 py-0.5 rounded-md">{p.price}</span>
+                                <span className="text-[10px] text-[#A1887F] uppercase tracking-wider truncate">{p.category}</span>
+                                </div>
+                                {p.sku && <div className="text-[10px] text-gray-400 font-mono flex items-center gap-1"><Tag className="w-3 h-3"/> {p.sku}</div>}
+                            </div>
+                            
+                            <div className="flex md:hidden gap-4 mt-2 justify-end items-end h-full">
+                                <button onClick={() => setEditingProduct(p)} className="text-[#8D6E63] p-2 bg-gray-50 rounded-lg"><Edit2 className="w-5 h-5"/></button>
+                                <button onClick={() => handleDelete(p.id)} className="text-gray-400 p-2 bg-gray-50 rounded-lg"><EyeOff className="w-5 h-5"/></button>
+                            </div>
+                        </div>
+                        </motion.div>
+                    ))}
+                    </AnimatePresence>
+                </div>
+              </>
+          )}
+
+          {/* === GALLERY VIEW === */}
+          {activeTab === 'gallery' && (
+              <>
+                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                    <div>
+                        <h3 className="text-3xl font-heading font-bold text-[#3E2723]">Ticker Gallery</h3>
+                        <p className="text-[#8D6E63] text-sm mt-1">Images that scroll below the hero section</p>
+                    </div>
+                    <div className="flex gap-2 w-full md:w-auto items-center bg-white p-2 rounded-xl shadow-sm border border-[#E7E5E4]">
+                        <input 
+                            type="text" 
+                            placeholder="https://image-url.com..." 
+                            className="px-3 py-2 bg-[#FAFAF9] border border-[#E7E5E4] rounded-lg text-sm w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-[#8D6E63]/20"
+                            value={galleryUrlInput}
+                            onChange={(e) => setGalleryUrlInput(e.target.value)}
+                        />
+                        <button 
+                            onClick={handleGalleryUrlAdd}
+                            disabled={isLoading || !galleryUrlInput.trim()}
+                            className="bg-[#5D4037] text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-[#3E2723] transition-colors disabled:opacity-50 whitespace-nowrap"
+                        >
+                            {isLoading ? <Loader className="animate-spin w-4 h-4"/> : 'Add Link'}
+                        </button>
+                        
+                        <div className="w-px h-6 bg-[#E7E5E4] mx-1"></div>
+
+                        <label className="flex items-center gap-2 bg-[#EFEBE9] text-[#5D4037] px-4 py-2 rounded-lg hover:bg-[#D7CCC8] transition-all duration-300 font-bold text-xs uppercase cursor-pointer whitespace-nowrap">
+                            <Upload className="w-4 h-4" />
+                            <span>Upload</span>
+                            <input type="file" className="hidden" accept="image/*" onChange={handleGalleryUpload} disabled={isLoading} />
+                        </label>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {galleryImages.length === 0 && (
+                        <div className="col-span-full text-center py-20 text-gray-400 border-2 border-dashed border-gray-200 rounded-2xl">
+                            <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-20"/>
+                            <p>No images in the ticker yet.</p>
+                        </div>
+                    )}
+                    <AnimatePresence>
+                        {galleryImages.map((img) => (
+                            <motion.div 
+                                key={img.id} 
+                                initial={{ opacity: 0, scale: 0.9 }} 
+                                animate={{ opacity: 1, scale: 1 }} 
+                                exit={{ opacity: 0, scale: 0 }}
+                                className="aspect-square bg-white rounded-xl shadow-sm border border-[#E7E5E4] relative group overflow-hidden"
+                            >
+                                <img src={img.image_url} className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <button 
+                                        onClick={() => handleDeleteGallery(img.id)}
+                                        className="p-3 bg-red-600 text-white rounded-full shadow-lg hover:scale-110 transition-transform"
+                                    >
+                                        <Trash2 className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </div>
+              </>
+          )}
+
         </div>
       </div>
 
@@ -428,17 +567,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
                       <button onClick={() => setShowRepairModal(false)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full"><X className="w-5 h-5"/></button>
                       <div className="flex items-center gap-3 text-red-600 mb-4">
                           <AlertTriangle className="w-8 h-8"/>
-                          <h2 className="text-2xl font-bold">Fix Deletion Issues</h2>
+                          <h2 className="text-2xl font-bold">Fix Database Issues</h2>
                       </div>
                       <p className="text-gray-600 mb-6">
-                          Since "Hard Delete" is blocked by permissions, we must use <b>"Soft Delete"</b> (Hiding). 
-                          This requires an <code>is_hidden</code> column in your database.
+                          It seems your database is missing some required tables or columns.
                       </p>
                       
-                      <div className="bg-gray-900 rounded-lg p-4 mb-6 relative group">
-                          <pre className="text-green-400 font-mono text-xs md:text-sm overflow-x-auto">
-{`-- RUN THIS IN SUPABASE SQL EDITOR
-ALTER TABLE products ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT false;`}
+                      <div className="bg-gray-900 rounded-lg p-4 mb-6 relative group overflow-x-auto max-h-60">
+                          <pre className="text-green-400 font-mono text-xs md:text-sm">
+{`-- 1. Enable Soft Delete
+ALTER TABLE products ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT false;
+
+-- 2. Create Gallery Table
+CREATE TABLE IF NOT EXISTS gallery (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  image_url TEXT NOT NULL
+);
+ALTER TABLE gallery DISABLE ROW LEVEL SECURITY;`}
                           </pre>
                       </div>
                       
@@ -453,9 +599,9 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT false;`}
           )}
       </AnimatePresence>
 
-      {/* Edit/Add Modal */}
+      {/* Edit/Add Modal (Only for Products) */}
       <AnimatePresence>
-        {editingProduct && (
+        {editingProduct && activeTab === 'products' && (
           <div className="fixed inset-0 z-[110] bg-[#2D1B15]/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-6">
             <motion.div 
               initial={{ y: "100%", opacity: 0, scale: 0.95 }} 

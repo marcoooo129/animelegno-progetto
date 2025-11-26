@@ -33,18 +33,26 @@ export const isSupabaseConfigured = (): boolean => {
 
 /*
   ===================================================================
-  🔥 DATABASE REPAIR: SOFT DELETE STRATEGY 🔥
-  Run this in Supabase SQL Editor to enable "Soft Delete".
-  This allows "deleting" items by hiding them, avoiding permission errors.
+  🔥 DATABASE REPAIR: SOFT DELETE & GALLERY 🔥
+  Run this in Supabase SQL Editor.
   ===================================================================
 
+  -- 1. Enable Soft Delete for Products
   ALTER TABLE products ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT false;
+
+  -- 2. Create Gallery Table for Scrolling Ticker
+  CREATE TABLE IF NOT EXISTS gallery (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    image_url TEXT NOT NULL
+  );
+  ALTER TABLE gallery DISABLE ROW LEVEL SECURITY;
 
   ===================================================================
   FULL SETUP SCRIPT (If starting fresh)
   ===================================================================
   
-  -- 1. Create Table
+  -- 1. Create Product Table
   CREATE TABLE IF NOT EXISTS products (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -62,10 +70,18 @@ export const isSupabaseConfigured = (): boolean => {
     is_hidden BOOLEAN DEFAULT false
   );
 
-  -- 2. DISABLE RLS (For simplest admin access)
+  -- 2. Create Gallery Table
+  CREATE TABLE IF NOT EXISTS gallery (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    image_url TEXT NOT NULL
+  );
+
+  -- 3. DISABLE RLS (For simplest admin access)
   ALTER TABLE products DISABLE ROW LEVEL SECURITY;
+  ALTER TABLE gallery DISABLE ROW LEVEL SECURITY;
   
-  -- 3. Storage
+  -- 4. Storage
   INSERT INTO storage.buckets (id, name, public) 
   VALUES ('product-images', 'product-images', true)
   ON CONFLICT (id) DO NOTHING;

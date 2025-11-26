@@ -28,6 +28,11 @@ export interface Product {
   isHidden?: boolean;
 }
 
+export interface GalleryItem {
+  id: string;
+  image_url: string;
+}
+
 export interface ChatMessage {
   role: 'user' | 'model';
   text: string;

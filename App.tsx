@@ -14,6 +14,7 @@ import CustomCursor from './components/CustomCursor';
 import ProductCard from './components/ArtistCard';
 import AIChat from './components/AIChat';
 import AdminDashboard from './components/AdminDashboard';
+import ImageTicker from './components/ImageTicker';
 import { Product } from './types';
 import { ProductService } from './services/productService';
 
@@ -358,6 +359,9 @@ const App: React.FC = () => {
           </motion.button>
         </motion.div>
       </header>
+
+      {/* INFINITE IMAGE TICKER - Now gets refresh trigger */}
+      <ImageTicker refreshTrigger={refreshTrigger} />
 
       {/* PORTFOLIO SECTION */}
       <section id="portfolio" className="relative z-10 py-12 md:py-32">
