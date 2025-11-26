@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
-import { Instagram, Mail, MessageCircle, Menu, X, ChevronLeft, ChevronRight, PenTool, Gem, Hammer, Lock, ShieldCheck, Globe } from 'lucide-react';
+import { Instagram, Mail, MessageCircle, Menu, X, ChevronLeft, ChevronRight, PenTool, Gem, Hammer, Lock, ShieldCheck, Globe, ArrowDown } from 'lucide-react';
 import FluidBackground from './components/FluidBackground';
 import GradientText from './components/GlitchText';
 import CustomCursor from './components/CustomCursor';
@@ -208,7 +208,27 @@ const App: React.FC = () => {
     </div>
   );
 
+  // Staggered Text Animation Variants
+  const containerVars = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.2 }
+    }
+  };
+  const letterVars = {
+    hidden: { y: "100%", opacity: 0 },
+    visible: { 
+      y: "0%", 
+      opacity: 1,
+      transition: { duration: 0.8, ease: [0.33, 1, 0.68, 1] } 
+    }
+  };
+
+  const mainTitle = "AnimeLegno";
+
   return (
+    // No background color on this wrapper to allow FluidBackground to show through
     <div className="relative min-h-screen text-[#44403C] selection:bg-[#D7CCC8] selection:text-[#3E2723] cursor-auto md:cursor-none overflow-x-hidden">
       <CustomCursor />
       <FluidBackground />
@@ -224,8 +244,8 @@ const App: React.FC = () => {
         )}
       </AnimatePresence>
       
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-6 md:px-12 py-4 md:py-6 bg-[#FAFAF9]/95 md:bg-[#FAFAF9]/90 md:backdrop-blur-md border-b border-[#E7E5E4]">
+      {/* Navigation - Ultra Transparent & Smooth */}
+      <nav className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-6 md:px-12 py-4 md:py-6 bg-[#FAFAF9]/5 backdrop-blur-xl border-b border-white/20 shadow-[0_1px_20px_rgba(0,0,0,0.02)] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
         <div className="font-heading text-lg md:text-2xl font-bold tracking-tight text-[#3E2723] cursor-default z-50 flex items-center gap-2">
           AnimeLegno Studio
         </div>
@@ -279,7 +299,7 @@ const App: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 z-30 bg-[#FAFAF9] flex flex-col items-center justify-center gap-8 md:hidden"
+            className="fixed inset-0 z-30 bg-[#FAFAF9]/90 backdrop-blur-2xl flex flex-col items-center justify-center gap-8 md:hidden"
           >
             {['Portfolio', 'Custom', 'Contact'].map((item) => (
               <button
@@ -303,8 +323,8 @@ const App: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* HERO SECTION */}
-      <header className="relative h-[100svh] min-h-[100svh] flex flex-col items-center justify-center overflow-hidden px-4">
+      {/* HERO SECTION - Relative z-10 for layering over fixed bg. Transparent bg. */}
+      <header className="relative z-10 h-[100svh] min-h-[100svh] flex flex-col items-center justify-center overflow-hidden px-4">
         <motion.div 
           style={{ y, opacity }}
           className="z-10 text-center flex flex-col items-center w-full max-w-6xl pb-16 md:pb-20"
@@ -314,56 +334,91 @@ const App: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.2 }}
-            className="flex items-center gap-2 md:gap-4 text-[10px] md:text-sm font-medium text-[#5D4037] tracking-[0.2em] uppercase mb-4 md:mb-6 bg-white/50 px-4 py-2 md:px-6 md:py-2 rounded-full backdrop-blur-sm border border-[#D7CCC8]"
+            className="flex items-center gap-2 md:gap-4 text-[10px] md:text-sm font-medium text-[#5D4037] tracking-[0.2em] uppercase mb-6 md:mb-8 bg-white/50 px-4 py-2 md:px-6 md:py-2 rounded-full backdrop-blur-sm border border-[#D7CCC8]"
           >
             <span>{t.hero.location}</span>
             <span className="w-1.5 h-1.5 bg-[#8D6E63] rounded-full"/>
             <span>{t.hero.badge}</span>
           </motion.div>
 
-          {/* Main Title */}
-          <div className="relative w-full flex justify-center items-center flex-col pb-4">
-            <h1 className="text-[13vw] md:text-[8vw] leading-[1.2] font-bold tracking-tight text-center text-[#3E2723] p-2">
-              <GradientText text="AnimeLegno" />
+          {/* Main Title - Staggered Reveal Animation */}
+          <div className="relative w-full flex justify-center items-center flex-col pb-4 overflow-hidden">
+            <h1 className="text-[13vw] md:text-[9vw] leading-[1.1] font-bold tracking-tight text-center text-[#3E2723] p-2 flex overflow-hidden">
+               <motion.div variants={containerVars} initial="hidden" animate="visible" className="flex">
+                  {mainTitle.split('').map((char, index) => (
+                    <motion.span key={index} variants={letterVars} className="inline-block relative">
+                       {/* The main opaque text */}
+                       <span className="relative z-10">{char}</span>
+                       {/* A subtle reflection/shadow layer */}
+                       <span className="absolute left-0 top-0 text-[#8D6E63]/20 blur-[1px] transform translate-y-1 z-0">{char}</span>
+                    </motion.span>
+                  ))}
+               </motion.div>
             </h1>
-            <p className="text-lg md:text-3xl font-serif italic text-[#5D4037] mt-1 md:mt-4">
+            
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1, duration: 1 }}
+              className="text-lg md:text-3xl font-serif italic text-[#5D4037] mt-1 md:mt-2"
+            >
               {t.hero.subtitle}
-            </p>
+            </motion.p>
           </div>
           
           <motion.div
              initial={{ scaleX: 0 }}
              animate={{ scaleX: 1 }}
-             transition={{ duration: 1.5, delay: 0.5, ease: "circOut" }}
+             transition={{ duration: 1.5, delay: 1.2, ease: "circOut" }}
              className="w-16 md:w-24 h-1 bg-[#8D6E63] mt-4 mb-6 md:mb-8 rounded-full"
           />
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 1 }}
+            transition={{ delay: 1.4, duration: 1 }}
             className="text-sm md:text-xl font-light max-w-xl mx-auto text-[#44403C] leading-relaxed px-4"
           >
             {t.hero.desc}
           </motion.p>
 
           <motion.button
-             initial={{ opacity: 0 }}
-             animate={{ opacity: 1 }}
-             transition={{ delay: 1, duration: 1 }}
+             initial={{ opacity: 0, scale: 0.9 }}
+             animate={{ opacity: 1, scale: 1 }}
+             transition={{ delay: 1.6, duration: 1 }}
              onClick={() => scrollToSection('portfolio')}
-             className="mt-8 md:mt-10 px-8 py-3 bg-[#3E2723] text-white rounded-full font-medium tracking-wide hover:bg-[#5D4037] transition-colors shadow-lg shadow-[#3E2723]/20"
+             className="mt-8 md:mt-10 px-8 py-3 bg-[#3E2723] text-white rounded-full font-medium tracking-wide hover:bg-[#5D4037] transition-all shadow-lg shadow-[#3E2723]/20 hover:scale-105"
              data-hover="true"
           >
             {t.hero.cta}
           </motion.button>
+        </motion.div>
+        
+        {/* Scroll Indicator */}
+        <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2, duration: 1 }}
+            className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 cursor-pointer z-10"
+            onClick={() => scrollToSection('portfolio')}
+        >
+            <span className="text-[10px] uppercase tracking-[0.3em] text-[#5D4037]/70">Scroll</span>
+            <motion.div 
+                className="w-[1px] h-12 bg-[#D7CCC8] relative overflow-hidden"
+            >
+                <motion.div 
+                    className="absolute top-0 left-0 w-full h-1/2 bg-[#3E2723]"
+                    animate={{ top: ['-100%', '100%'] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                />
+            </motion.div>
         </motion.div>
       </header>
 
       {/* INFINITE IMAGE TICKER - Now gets refresh trigger */}
       <ImageTicker refreshTrigger={refreshTrigger} />
 
-      {/* PORTFOLIO SECTION */}
+      {/* PORTFOLIO SECTION - Transparent BG */}
       <section id="portfolio" className="relative z-10 py-12 md:py-32">
         <div className="max-w-[1400px] mx-auto px-4 md:px-6">
           <div className="flex flex-col items-center mb-10 md:mb-16 px-4 text-center">
@@ -388,8 +443,8 @@ const App: React.FC = () => {
         </div>
       </section>
 
-      {/* CUSTOM SERVICE SECTION */}
-      <section id="custom" className="relative z-10 py-12 md:py-32 bg-[#EFEBE9] overflow-hidden">
+      {/* CUSTOM SERVICE SECTION - Transparent BG to show global background */}
+      <section id="custom" className="relative z-10 py-12 md:py-32 bg-transparent overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 md:px-6 relative">
           <div className="text-center mb-10 md:mb-16">
             <h2 className="text-3xl md:text-6xl font-heading font-bold text-[#3E2723] mb-6">
@@ -407,7 +462,8 @@ const App: React.FC = () => {
               <motion.div
                 key={i}
                 whileHover={{ y: -10 }}
-                className="bg-[#FAFAF9] p-6 md:p-8 rounded-2xl shadow-sm border border-[#D7CCC8] flex flex-row md:flex-col items-center text-left md:text-center gap-4 md:gap-0"
+                // Make card semi-transparent to reveal wood grain underneath
+                className="bg-[#FAFAF9]/60 backdrop-blur-sm p-6 md:p-8 rounded-2xl shadow-sm border border-[#D7CCC8]/50 flex flex-row md:flex-col items-center text-left md:text-center gap-4 md:gap-0 transition-all hover:bg-[#FAFAF9]/80"
               >
                 <div className="w-12 h-12 md:w-16 md:h-16 bg-[#F5F5DC] rounded-full flex items-center justify-center md:mb-6 text-[#8D6E63] flex-shrink-0">
                   <step.icon className="w-6 h-6 md:w-8 md:h-8" />
@@ -431,8 +487,8 @@ const App: React.FC = () => {
         </div>
       </section>
 
-      {/* CONTACT / FOOTER SECTION */}
-      <section id="contact" className="relative z-10 py-12 md:py-32 px-4 md:px-6 bg-[#FAFAF9]">
+      {/* CONTACT / FOOTER SECTION - Transparent BG */}
+      <section id="contact" className="relative z-10 py-12 md:py-32 px-4 md:px-6 bg-transparent">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10 md:mb-16">
              <h2 className="text-3xl md:text-6xl font-heading font-bold text-[#3E2723]">
@@ -448,7 +504,7 @@ const App: React.FC = () => {
               href="https://instagram.com/animelegno_firenze" // Placeholder link
               target="_blank"
               rel="noopener noreferrer"
-              className="group bg-white p-6 md:p-8 rounded-2xl shadow-sm hover:shadow-lg border border-[#E7E5E4] flex flex-col items-center transition-all duration-300"
+              className="group bg-[#FAFAF9]/60 backdrop-blur-sm p-6 md:p-8 rounded-2xl shadow-sm hover:shadow-lg border border-[#D7CCC8]/50 flex flex-col items-center transition-all duration-300 hover:bg-[#FAFAF9]/80"
               data-hover="true"
             >
               <div className="bg-gradient-to-tr from-purple-500 to-orange-500 text-white p-3 md:p-4 rounded-full mb-4 group-hover:scale-110 transition-transform">
@@ -462,7 +518,7 @@ const App: React.FC = () => {
               href="https://wa.me/390000000000" // Placeholder link
               target="_blank"
               rel="noopener noreferrer"
-              className="group bg-white p-6 md:p-8 rounded-2xl shadow-sm hover:shadow-lg border border-[#E7E5E4] flex flex-col items-center transition-all duration-300 transform md:-translate-y-4"
+              className="group bg-[#FAFAF9]/60 backdrop-blur-sm p-6 md:p-8 rounded-2xl shadow-sm hover:shadow-lg border border-[#D7CCC8]/50 flex flex-col items-center transition-all duration-300 transform md:-translate-y-4 hover:bg-[#FAFAF9]/80"
               data-hover="true"
             >
               <div className="bg-green-500 text-white p-3 md:p-4 rounded-full mb-4 group-hover:scale-110 transition-transform">
@@ -474,7 +530,7 @@ const App: React.FC = () => {
 
             <a 
               href="mailto:hello@animelegno.com" 
-              className="group bg-white p-6 md:p-8 rounded-2xl shadow-sm hover:shadow-lg border border-[#E7E5E4] flex flex-col items-center transition-all duration-300"
+              className="group bg-[#FAFAF9]/60 backdrop-blur-sm p-6 md:p-8 rounded-2xl shadow-sm hover:shadow-lg border border-[#D7CCC8]/50 flex flex-col items-center transition-all duration-300 hover:bg-[#FAFAF9]/80"
               data-hover="true"
             >
               <div className="bg-[#3E2723] text-white p-3 md:p-4 rounded-full mb-4 group-hover:scale-110 transition-transform">
