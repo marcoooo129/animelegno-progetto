@@ -9,7 +9,8 @@ import { GoogleGenAI, Chat, GenerateContentResponse, Type } from "@google/genai"
 let chatSession: Chat | null = null;
 
 const getAIClient = () => {
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Using embedded API key as requested for external deployment stability
+  return new GoogleGenAI({ apiKey: 'AIzaSyAtl3uJurXSI6aBG1E2PVy_xM_f39Iy6Ok' });
 };
 
 export const initializeChat = (): Chat => {
