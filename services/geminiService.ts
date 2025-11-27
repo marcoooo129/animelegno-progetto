@@ -6,23 +6,24 @@
 
 import { GoogleGenAI, Chat, GenerateContentResponse, Type } from "@google/genai";
 
-// User provided API Key
-const API_KEY = 'AIzaSyAWxZ30OfKqPEFzn2v88tVhfyB2VrE37vg';
-
 let chatSession: Chat | null = null;
+
+const getAIClient = () => {
+  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+};
 
 export const initializeChat = (): Chat => {
   if (chatSession) return chatSession;
 
-  const ai = new GoogleGenAI({ apiKey: API_KEY });
+  const ai = getAIClient();
   
   chatSession = ai.chats.create({
     model: 'gemini-2.5-flash',
     config: {
-      systemInstruction: `You are the friendly assistant for 'AnimeLegno Studio'.
-      We are a wood carving studio in Florence, Italy, specializing in Anime art.
+      systemInstruction: `You are the friendly and knowledgeable assistant for 'AnimeLegno Studio'.
+      We are a high-end wood carving studio in Florence, Italy, specializing in Anime art.
       
-      Tone: Warm, artisanal, polite, enthusiastic about anime.
+      Tone: Warm, artisanal, polite, enthusiastic about anime, but professional.
       
       Key Info:
       - Location: Florence, Italy.
@@ -31,7 +32,7 @@ export const initializeChat = (): Chat => {
       - Process: Chat -> Confirm Design -> Deposit -> Crafting -> Delivery.
       - Contact: Best via WhatsApp or Instagram.
       
-      Keep responses short (under 50 words). Use emojis like 🪵, 🎨, 🖌️, 🇮🇹.`,
+      Keep responses concise (under 60 words). Use emojis occasionally like 🪵, 🎨, 🖌️, 🇮🇹.`,
     },
   });
 
@@ -39,17 +40,15 @@ export const initializeChat = (): Chat => {
 };
 
 export const sendMessageToGemini = async (message: string): Promise<string> => {
-  if (!API_KEY) {
-    return "I'm currently sanding a piece... (Missing API Key)";
-  }
-
   try {
     const chat = initializeChat();
     const response: GenerateContentResponse = await chat.sendMessage({ message });
     return response.text || "Sorry, I didn't catch that.";
   } catch (error) {
-    console.error("Gemini Error:", error);
-    return "I seem to have lost my chisel. Try again later.";
+    console.error("Gemini Chat Error:", error);
+    // Reset session on error in case of expiry
+    chatSession = null;
+    return "I seem to be having trouble connecting to the studio. Please try again in a moment.";
   }
 };
 
@@ -57,9 +56,7 @@ export const sendMessageToGemini = async (message: string): Promise<string> => {
  * Analyzes an image (Base64) and returns product details (Name, Category, Description)
  */
 export const analyzeProductImage = async (base64Data: string, mimeType: string = 'image/jpeg') => {
-  if (!API_KEY) throw new Error("Missing Gemini API Key");
-
-  const ai = new GoogleGenAI({ apiKey: API_KEY });
+  const ai = getAIClient();
 
   try {
     const response = await ai.models.generateContent({
@@ -67,11 +64,10 @@ export const analyzeProductImage = async (base64Data: string, mimeType: string =
       contents: {
         parts: [
           { inlineData: { mimeType: mimeType, data: base64Data } },
-          { text: "Analyze this image of a wood carving. Return a strict JSON object. Fields: 'name' (Character Name), 'category' (The specific Anime Series Name in English, e.g. One Piece), 'category_it' (The specific Anime Series Name in Italian), 'description' (English, max 30 words), 'name_it' (Italian Translation of name), 'description_it' (Italian Translation of desc), 'sku' (Generate a short code like SR-001)." }
+          { text: "Analyze this image of a wood carving or anime figure. Return a strict JSON object describing it for a product catalog. Fields required: 'name' (Character Name), 'category' (Anime Series Name English), 'category_it' (Anime Series Name Italian), 'description' (English marketing description, max 30 words), 'name_it' (Italian name), 'description_it' (Italian description), 'sku' (Generate a creative SKU code)." }
         ]
       },
       config: {
-        maxOutputTokens: 8192, 
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -88,19 +84,9 @@ export const analyzeProductImage = async (base64Data: string, mimeType: string =
       }
     });
 
-    const text = response.text || "";
-    // Clean up potentially dirty JSON (e.g. markdown code blocks)
-    const cleanedText = text.replace(/```json|```/g, '').trim();
-    
-    // Robust parsing: extract content between first { and last }
-    const firstBrace = cleanedText.indexOf('{');
-    const lastBrace = cleanedText.lastIndexOf('}');
-    
-    if (firstBrace !== -1 && lastBrace !== -1) {
-       return JSON.parse(cleanedText.substring(firstBrace, lastBrace + 1));
-    }
+    const text = response.text || "{}";
+    return JSON.parse(text);
 
-    return JSON.parse(cleanedText);
   } catch (error: any) {
     console.error("Gemini Image Analysis Failed:", error);
     throw new Error(`AI Analysis Failed: ${error.message || 'Unknown error'}`);
