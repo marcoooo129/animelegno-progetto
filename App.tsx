@@ -400,7 +400,7 @@ const App: React.FC = () => {
       </header>
 
       {/* INFINITE IMAGE TICKER - Now gets refresh trigger */}
-      <ImageTicker refreshTrigger={refreshTrigger} />
+      <ImageTicker />
 
       {/* PORTFOLIO SECTION - Transparent BG */}
       <section id="portfolio" className="relative z-10 py-12 md:py-32">

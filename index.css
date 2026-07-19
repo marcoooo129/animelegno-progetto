@@ -45,18 +45,18 @@ h3,
 }
 
 .gallery-ticker-track {
+  animation-duration: 34s;
   animation-name: gallery-ticker;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
   animation-play-state: paused;
+  animation-fill-mode: both;
+  backface-visibility: hidden;
 }
 
 .gallery-ticker-track[data-visible='true'] {
   animation-play-state: running;
-}
-
-.gallery-ticker-track:hover {
-  animation-play-state: paused;
+  will-change: transform;
 }
 
 @media (min-width: 768px) and (pointer: fine) {
