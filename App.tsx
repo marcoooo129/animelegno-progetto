@@ -12,6 +12,7 @@ import GradientText from './components/GlitchText';
 import ProductCard from './components/ArtistCard';
 import AIChat from './components/AIChat';
 import ImageTicker from './components/ImageTicker';
+import CustomCursor from './components/CustomCursor';
 import { Product } from './types';
 
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
@@ -222,7 +223,8 @@ const App: React.FC = () => {
   const mainTitle = "AnimeLegno";
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#FAFAF9] text-[#44403C] selection:bg-[#D7CCC8] selection:text-[#3E2723]">
+    <div className="custom-cursor-surface relative min-h-screen overflow-x-hidden bg-[#FAFAF9] text-[#44403C] selection:bg-[#D7CCC8] selection:text-[#3E2723]">
+      <CustomCursor />
       <AIChat lang={lang} />
 
       {/* Admin Dashboard Overlay */}

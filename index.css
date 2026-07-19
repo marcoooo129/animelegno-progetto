@@ -33,3 +33,45 @@ h3,
 .bg-radial-gradient {
   background: radial-gradient(circle at center, var(--tw-gradient-from) 0%, var(--tw-gradient-to) 100%);
 }
+
+@keyframes gallery-ticker {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.gallery-ticker-track {
+  animation-name: gallery-ticker;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-play-state: paused;
+}
+
+.gallery-ticker-track[data-visible='true'] {
+  animation-play-state: running;
+}
+
+.gallery-ticker-track:hover {
+  animation-play-state: paused;
+}
+
+@media (min-width: 768px) and (pointer: fine) {
+  .custom-cursor-surface,
+  .custom-cursor-surface * {
+    cursor: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .gallery-ticker-track {
+    animation: none;
+  }
+}

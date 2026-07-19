@@ -1,72 +1,68 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
-*/
-
+ */
 
 import React, { useEffect, useState } from 'react';
-import { motion, useSpring, useMotionValue } from 'framer-motion';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
+
+const INTERACTIVE_SELECTOR = '[data-hover="true"], a, button';
 
 const CustomCursor: React.FC = () => {
   const [isHovering, setIsHovering] = useState(false);
-  
-  const mouseX = useMotionValue(-100);
-  const mouseY = useMotionValue(-100);
-  
-  const springConfig = { damping: 25, stiffness: 300, mass: 0.2 }; 
-  const x = useSpring(mouseX, springConfig);
-  const y = useSpring(mouseY, springConfig);
+  const mouseX = useMotionValue(-120);
+  const mouseY = useMotionValue(-120);
+  const x = useSpring(mouseX, { damping: 28, stiffness: 360, mass: 0.2 });
+  const y = useSpring(mouseY, { damping: 28, stiffness: 360, mass: 0.2 });
 
   useEffect(() => {
-    const updateMousePosition = (e: MouseEvent) => {
-      mouseX.set(e.clientX);
-      mouseY.set(e.clientY);
+    const finePointer = window.matchMedia('(pointer: fine)');
+    if (!finePointer.matches) return;
 
-      const target = e.target as HTMLElement;
-      // Check for interactive elements
-      const isClickable = !!(
-        target.closest('[data-hover="true"]') || 
-        target.closest('a') || 
-        target.closest('button') ||
-        target.tagName === 'A' ||
-        target.tagName === 'BUTTON'
-      );
-      
-      setIsHovering(isClickable);
+    const updatePosition = (event: PointerEvent) => {
+      mouseX.set(event.clientX);
+      mouseY.set(event.clientY);
     };
 
-    window.addEventListener('mousemove', updateMousePosition, { passive: true });
-    return () => window.removeEventListener('mousemove', updateMousePosition);
+    const updateHoverState = (target: EventTarget | null) => {
+      setIsHovering(target instanceof Element && Boolean(target.closest(INTERACTIVE_SELECTOR)));
+    };
+
+    const handlePointerOver = (event: PointerEvent) => updateHoverState(event.target);
+    const handlePointerOut = (event: PointerEvent) => updateHoverState(event.relatedTarget);
+
+    window.addEventListener('pointermove', updatePosition, { passive: true });
+    window.addEventListener('pointerover', handlePointerOver, { passive: true });
+    window.addEventListener('pointerout', handlePointerOut, { passive: true });
+
+    return () => {
+      window.removeEventListener('pointermove', updatePosition);
+      window.removeEventListener('pointerover', handlePointerOver);
+      window.removeEventListener('pointerout', handlePointerOut);
+    };
   }, [mouseX, mouseY]);
 
   return (
     <motion.div
-      className="fixed top-0 left-0 z-[9999] pointer-events-none flex items-center justify-center hidden md:flex"
-      style={{ 
-        x, 
-        y, 
-        translateX: '-50%', 
+      className="pointer-events-none fixed left-0 top-0 z-[120] hidden items-center justify-center md:flex"
+      style={{
+        x,
+        y,
+        translateX: '-50%',
         translateY: '-50%',
-        mixBlendMode: 'difference' // The classic high-contrast effect
+        mixBlendMode: 'difference',
       }}
+      aria-hidden="true"
     >
       <motion.div
-        className="flex items-center justify-center bg-white rounded-full"
-        animate={{
-          width: isHovering ? 120 : 40, // Increased size: 40px default, 120px hover
-          height: isHovering ? 120 : 40,
-        }}
-        transition={{ type: "spring", stiffness: 250, damping: 20 }}
+        className="flex size-10 items-center justify-center rounded-full bg-white"
+        animate={{ scale: isHovering ? 3 : 1 }}
+        transition={{ duration: 0.18, ease: 'easeOut' }}
       >
-        <motion.span 
-          className="text-black font-bold uppercase tracking-[0.2em] text-xs" // Increased text size slightly
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ 
-            opacity: isHovering ? 1 : 0,
-            scale: isHovering ? 1 : 0
-          }}
-          transition={{ duration: 0.2 }}
+        <motion.span
+          className="text-xs font-bold uppercase text-black"
+          animate={{ opacity: isHovering ? 1 : 0, scale: isHovering ? 0.34 : 0 }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
         >
           VIEW
         </motion.span>

@@ -121,7 +121,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onUpdate }) =>
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'admin123') {
+    if (password === '111') {
       setIsAuthenticated(true);
       sessionStorage.setItem('admin_auth', 'true');
       setUseLocalMode(!isSupabaseConfigured());
