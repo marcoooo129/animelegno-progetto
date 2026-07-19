@@ -5,9 +5,7 @@
 */
 
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { GalleryItem } from '../types';
-import { GalleryService } from '../services/galleryService';
 
 interface ImageTickerProps {
   refreshTrigger?: number;
@@ -24,11 +22,11 @@ const DEMO_IMAGES: GalleryItem[] = [
 
 const ImageTicker: React.FC<ImageTickerProps> = ({ refreshTrigger = 0 }) => {
   const [images, setImages] = useState<GalleryItem[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchImages = async () => {
       try {
+        const { GalleryService } = await import('../services/galleryService');
         const data = await GalleryService.getAll();
         console.log("Ticker fetched images:", data);
         if (data && data.length > 0) {
@@ -40,8 +38,6 @@ const ImageTicker: React.FC<ImageTickerProps> = ({ refreshTrigger = 0 }) => {
       } catch (err) {
         console.error("Ticker fetch error, using demo:", err);
         setImages(DEMO_IMAGES);
-      } finally {
-        setLoading(false);
       }
     };
     fetchImages();
@@ -50,63 +46,29 @@ const ImageTicker: React.FC<ImageTickerProps> = ({ refreshTrigger = 0 }) => {
   // Determine which list to use (Real or Demo)
   const displayImages = images.length > 0 ? images : DEMO_IMAGES;
 
-  // Duplicate images for smooth infinite loop (x4 to fill wide screens)
-  const duplicatedImages = [...displayImages, ...displayImages, ...displayImages, ...displayImages];
-
   return (
-    <div className="w-full relative z-10 py-16 md:py-32 bg-transparent overflow-hidden">
-      {/* 
-         High-end Gradient Fades (Masks)
-         Seamlessly blends the slider into the page background.
-         The masks use the page base color but fade to transparent to allow the underlying grain to peek through the center.
-      */}
-      <div className="absolute left-0 top-0 bottom-0 w-32 md:w-64 bg-gradient-to-r from-[#FAFAF9] via-[#FAFAF9]/80 to-transparent z-20 pointer-events-none"></div>
-      <div className="absolute right-0 top-0 bottom-0 w-32 md:w-64 bg-gradient-to-l from-[#FAFAF9] via-[#FAFAF9]/80 to-transparent z-20 pointer-events-none"></div>
-
-      {/* Decorative Title (Vertical) */}
-      <div className="hidden lg:block absolute left-8 top-1/2 -translate-y-1/2 z-20 pointer-events-none mix-blend-multiply opacity-30">
-         <span className="text-[#3E2723] text-xs font-serif italic tracking-[0.3em] uppercase" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
-            Gallery &middot; Process &middot; Details
-         </span>
+    <section className="relative z-10 w-full bg-[#FAFAF9] py-16 md:py-24" aria-label="Gallery">
+      <div className="mx-auto mb-6 max-w-[1400px] px-4 md:px-6">
+        <p className="text-xs uppercase text-[#8D6E63]">Gallery · Process · Details</p>
       </div>
 
-      <motion.div
-        className="flex gap-8 md:gap-20 items-center pl-4"
-        animate={{
-          x: ["0%", "-50%"],
-        }}
-        transition={{
-          repeat: Infinity,
-          ease: "linear",
-          duration: Math.max(60, displayImages.length * 15), // Slow, museum-like pace
-        }}
-        style={{ width: "fit-content" }}
-      >
-        {duplicatedImages.map((item, index) => (
-          <motion.div 
-            key={`${item.id}-${index}`} 
-            className="relative h-[300px] md:h-[500px] aspect-[2/3] flex-shrink-0 bg-[#EFEBE9]/50 backdrop-blur-sm overflow-hidden group rounded-sm"
-            initial="rest"
-            whileHover="hover"
+      <div className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-4 pb-4 md:gap-8 md:px-6">
+        {displayImages.map((item) => (
+          <div
+            key={item.id}
+            className="group relative h-[280px] flex-shrink-0 snap-start overflow-hidden rounded-sm bg-[#EFEBE9] md:h-[420px]"
           >
-            <motion.img
+            <img
               src={item.image_url}
               alt="Gallery"
-              className="w-full h-full object-cover grayscale md:grayscale-[0.8]" // Default: B&W/Muted
-              variants={{
-                rest: { scale: 1.05, filter: "grayscale(0.8) contrast(0.9)" },
-                hover: { scale: 1.15, filter: "grayscale(0) contrast(1.1)" } // Hover: Full Color & Zoom
-              }}
-              transition={{ duration: 1.2, ease: [0.25, 1, 0.5, 1] }}
+              className="h-full w-auto object-cover transition-transform duration-200 md:group-hover:scale-105"
               loading="lazy"
+              decoding="async"
             />
-            
-            {/* Subtle grain overlay for texture */}
-            <div className="absolute inset-0 bg-black/5 mix-blend-multiply pointer-events-none"></div>
-          </motion.div>
+          </div>
         ))}
-      </motion.div>
-    </div>
+      </div>
+    </section>
   );
 };
 

@@ -8,7 +8,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { sendMessageToGemini } from '../services/geminiService';
 import { ChatMessage } from '../types';
 
 interface AIChatProps {
@@ -58,10 +57,21 @@ const AIChat: React.FC<AIChatProps> = ({ lang }) => {
     // Slight delay to allow state update to render before scrolling
     setTimeout(scrollToBottom, 100);
 
-    const responseText = await sendMessageToGemini(input);
-    
-    setMessages(prev => [...prev, { role: 'model', text: responseText }]);
-    setIsLoading(false);
+    try {
+      const { sendMessageToGemini } = await import('../services/geminiService');
+      const responseText = await sendMessageToGemini(userMessage.text);
+      setMessages(prev => [...prev, { role: 'model', text: responseText }]);
+    } catch (error) {
+      console.error('Unable to load the AI assistant:', error);
+      setMessages(prev => [...prev, {
+        role: 'model',
+        text: lang === 'it'
+          ? 'Il servizio AI non è disponibile in questo momento.'
+          : 'The AI service is unavailable right now.'
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -72,15 +82,16 @@ const AIChat: React.FC<AIChatProps> = ({ lang }) => {
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="mb-4 w-[90vw] md:w-96 bg-[#2D1B15]/95 backdrop-blur-xl border border-[#5D4037]/50 rounded-2xl overflow-hidden shadow-2xl shadow-black/40"
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="mb-4 w-[90vw] overflow-hidden rounded-2xl border border-[#5D4037]/50 bg-[#2D1B15] shadow-2xl shadow-black/40 md:w-96"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#3E2723] to-[#5D4037] p-4 flex justify-between items-center border-b border-[#8D6E63]/30">
+            <div className="flex items-center justify-between border-b border-[#8D6E63]/30 bg-[#3E2723] p-4">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
                 <h3 className="font-heading font-bold text-[#F5F5DC] tracking-wider">AnimeLegno AI</h3>
               </div>
-              <button onClick={() => setIsOpen(false)} className="text-[#F5F5DC]/50 hover:text-[#F5F5DC]" data-hover="true">
+              <button onClick={() => setIsOpen(false)} className="text-[#F5F5DC]/50 hover:text-[#F5F5DC]" data-hover="true" aria-label="Close assistant">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -138,6 +149,7 @@ const AIChat: React.FC<AIChatProps> = ({ lang }) => {
                   disabled={isLoading || !input.trim()}
                   className="bg-[#8D6E63] p-2 rounded-lg hover:bg-[#6D4C41] transition-colors disabled:opacity-50"
                   data-hover="true"
+                  aria-label="Send message"
                 >
                   <Send className="w-4 h-4 text-white" />
                 </button>
@@ -148,19 +160,18 @@ const AIChat: React.FC<AIChatProps> = ({ lang }) => {
       </AnimatePresence>
 
       {/* Toggle Button */}
-      <motion.button
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
+      <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-tr from-[#3E2723] to-[#8D6E63] flex items-center justify-center shadow-lg shadow-black/30 border border-[#D7CCC8]/20 z-50 group"
+        className="group z-50 flex size-12 items-center justify-center rounded-full border border-[#D7CCC8]/20 bg-[#3E2723] shadow-lg shadow-black/30 transition-transform duration-150 hover:scale-105 active:scale-95 md:size-14"
         data-hover="true"
+        aria-label={isOpen ? 'Close assistant' : 'Open assistant'}
       >
         {isOpen ? (
           <X className="w-5 h-5 md:w-6 md:h-6 text-[#F5F5DC]" />
         ) : (
-          <MessageCircle className="w-5 h-5 md:w-6 md:h-6 text-[#F5F5DC] group-hover:animate-bounce" />
+          <MessageCircle className="w-5 h-5 md:w-6 md:h-6 text-[#F5F5DC]" />
         )}
-      </motion.button>
+      </button>
     </div>
   );
 };
